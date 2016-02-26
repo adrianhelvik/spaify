@@ -44,7 +44,7 @@
     }
 
     function clickHandler( event ) {
-        if ( isExternal( this.getAttribute( 'href' ) ) ) {
+        if ( isExternal( this.getAttribute( 'href' ) ) && this.getAttribute( 'spa-external' ) === null ) {
             return;
         }
 
@@ -54,7 +54,15 @@
 
         ajax.get( url ).then( response => {
             deregisterStoredLinks();
-            var diffs = differ.diff( document, domParser.parseFromString( response.data, 'text/html' ) );
+            var newDOM;
+
+            try {
+                newDOM = domParser.parseFromString( response.data, 'text/html' );
+            } catch ( error ) {
+                newDOM = domParser.parseFromString('<!DOCTYPE html><body>' + response.data + '</body>');
+            }
+
+            var diffs = differ.diff( document, newDOM );
 
             diffs = diffs.filter( diff => {
                 if (diff.action === 'removeElement' && diff.element && diff.element.attributes && diff.element.attributes['spa-persist'] !== undefined) {
