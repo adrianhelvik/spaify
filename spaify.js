@@ -1,6 +1,12 @@
 ( function () {
     'use strict';
 
+    if ( ! DOMParser )
+        throw new Error( 'DOMParser not supported in your browser.' );
+
+    if ( ! diffDOM )
+        throw new Error( 'diffDOM is required to run spaify. Download it from github: fiduswriter/diffDOM' );
+
     var differ = new diffDOM();
     var domParser = new DOMParser();
     var storedLinks = [];
