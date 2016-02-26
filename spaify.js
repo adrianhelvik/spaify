@@ -44,6 +44,10 @@
     }
 
     function clickHandler( event ) {
+        if ( isExternal( this.getAttribute( 'href' ) ) ) {
+            return;
+        }
+
         event.preventDefault();
 
         var url = this.getAttribute( 'href' );
@@ -73,6 +77,16 @@
 
     function unlisten( link ) {
         link.removeEventListener( 'click', clickHandler );
+    }
+
+    function parseURI( url ) {
+        var parser = document.createElement('a');
+        parser.href = url;
+        return parser;
+    }
+
+    function isExternal( url ) {
+        return parseURI( url ).hostname !== parseURI( '' ).hostname;
     }
 
 } )();
