@@ -12,7 +12,7 @@ Simply add the following to the bottom of your index page:
 </script>
 ```
 
-.. and all \<a\> tags will trigger a get request that only
+.. and all `<a>` tags will trigger a get request that only
 replaces the changed parts of the DOM instead of applying
 a full page reload.
 
