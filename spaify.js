@@ -28,6 +28,12 @@
 
             ajaxify( links[i] );
         }
+
+        window.onpopstate = event => {
+            console.log( event, document.location.pathname );
+            goTo( document.location.pathname, true );
+            console.log( history );
+        };
     }
 
     function findPersistentElements() {
@@ -35,6 +41,16 @@
     }
 
     function ajaxify( link ) {
+        window.parseURI = parseURI;
+
+        if ( window.spaify && window.spaify.ignore ) {
+            for ( let ignored of window.spaify.ignore ) {
+                if ( parseURI( ignored ).pathname === parseURI( link.href ).pathname ) {
+                    return;
+                }
+            }
+        }
+
         storedLinks.push( link );
         listen( link );
     }
@@ -44,13 +60,18 @@
     }
 
     function clickHandler( event ) {
-        if ( isExternal( this.getAttribute( 'href' ) ) && this.getAttribute( 'spa-external' ) === null ) {
+        var url = this.getAttribute( 'href' );
+
+        if ( isExternal( url ) && this.getAttribute( 'spa-external' ) === null ) {
             return;
         }
 
         event.preventDefault();
 
-        var url = this.getAttribute( 'href' );
+        goTo( url );
+    }
+
+    function goTo( url, replace ) {
 
         ajax.get( url ).then( response => {
             deregisterStoredLinks();
@@ -71,11 +92,26 @@
 
                 return true;
             } );
-
             var successful = differ.apply( document, diffs );
+
+            [].forEach.call( document.querySelectorAll( '[spa-reload]' ), element => {
+                if ( element.getAttribute( 'spa-persist' ) === null ) {
+
+                    console.log( 'replacing', element );
+                    var parent = element.parentNode;
+                    var clone = Node.cloneNode( element );
+
+                    parent.removeChild( element );
+                    parent.appendChild( clone );
+                }
+            } );
+
             update();
 
-            history.pushState( null, url, url );
+            if ( ! replace )
+                history.pushState( null, url, url );
+            else
+                history.replaceState( null, url, url );
         } );
     }
 
