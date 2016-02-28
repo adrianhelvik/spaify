@@ -6,7 +6,10 @@ Simply add the following to the bottom of your index page:
 ```html
 <script spa-persist src="ajax.js"></script>
 <script spa-persist src="diffDOM.js"></script>
-<scirt spa-persist src="spaify.js">
+<script spa-persist src="spaify.js"></script>
+<script spa-persist>
+    spaify();
+</script>
 ```
 
 .. and all \<a\> tags will trigger a get request that only

@@ -1,23 +1,35 @@
 window.spaify = function ( options ) {
     'use strict';
 
-    if ( ! Promise ) {
-        console.warn( 'Your browser does not support Promise, which is required for spaify to work. Falling back to normal hrefs.' );
-        return;
+    console.log( 'spaify ran' );
+
+    window.onload = start;
+
+    var differ;
+    var domParser;
+    var storedLinks;
+    var persistentElements;
+
+    function start() {
+
+        if ( ! Promise ) {
+            console.warn( 'Your browser does not support Promise, which is required for spaify to work. Falling back to normal hrefs.' );
+            return;
+        }
+
+        if ( ! DOMParser )
+            throw new Error( 'DOMParser not supported in your browser.' );
+
+        if ( ! diffDOM )
+            throw new Error( 'diffDOM is required to run spaify. Download it from github: fiduswriter/diffDOM' );
+
+        differ = new diffDOM();
+        domParser = new DOMParser();
+        storedLinks = [];
+        persistentElements = [];
+
+        update();
     }
-
-    if ( ! DOMParser )
-        throw new Error( 'DOMParser not supported in your browser.' );
-
-    if ( ! diffDOM )
-        throw new Error( 'diffDOM is required to run spaify. Download it from github: fiduswriter/diffDOM' );
-
-    var differ = new diffDOM();
-    var domParser = new DOMParser();
-    var storedLinks = [];
-    var persistentElements = [];
-
-    update();
 
     function update() {
 
