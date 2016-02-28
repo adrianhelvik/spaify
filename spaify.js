@@ -1,5 +1,10 @@
-( function () {
+window.spaify = function ( options ) {
     'use strict';
+
+    if ( ! Promise ) {
+        console.warn( 'Your browser does not support Promise, which is required for spaify to work. Falling back to normal hrefs.' );
+        return;
+    }
 
     if ( ! DOMParser )
         throw new Error( 'DOMParser not supported in your browser.' );
@@ -19,9 +24,9 @@
         deregisterStoredLinks();
 
         var links = document.querySelectorAll( 'a' );
-        persistentElements = [].map.call( findPersistentElements(), element => element );
+        persistentElements = findPersistentElements();
 
-        for ( let i = 0; i < links.length; i++ ) {
+        for ( var i = 0; i < links.length; i++ ) {
 
             if ( links[i].getAttribute( 'spa-persist' ) !== null )
                 continue;
@@ -29,10 +34,12 @@
             ajaxify( links[i] );
         }
 
-        window.onpopstate = event => {
-            console.log( event, document.location.pathname );
-            goTo( document.location.pathname, true );
-            console.log( history );
+        window.onpopstate = function ( event ) {
+            console.log( parseURI( location.href ).pathname );
+            setTimeout( function () {
+                if ( parseURI( document.location.pathname ).pathname !== parseURI( location.href ).pathname )
+                    goTo( document.location.pathname, true );
+            }, 500 );
         };
     }
 
@@ -41,16 +48,6 @@
     }
 
     function ajaxify( link ) {
-        window.parseURI = parseURI;
-
-        if ( window.spaify && window.spaify.ignore ) {
-            for ( let ignored of window.spaify.ignore ) {
-                if ( parseURI( ignored ).pathname === parseURI( link.href ).pathname ) {
-                    return;
-                }
-            }
-        }
-
         storedLinks.push( link );
         listen( link );
     }
@@ -62,57 +59,85 @@
     function clickHandler( event ) {
         var url = this.getAttribute( 'href' );
 
-        if ( isExternal( url ) && this.getAttribute( 'spa-external' ) === null ) {
+        if ( isIgnored( url ) )
             return;
-        }
+
+        if ( url === '#' )
+            return;
+
+        if ( isExternal( url ) && this.getAttribute( 'spa-external' ) === null )
+            return;
 
         event.preventDefault();
 
         goTo( url );
     }
 
+    function isIgnored( url ) {
+        if ( ! options || ! options.ignore )
+            return;
+
+        for ( var ignored of options.ignore ) {
+            if ( parseURI( url ).pathname === parseURI( ignored ).pathname ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function goTo( url, replace ) {
 
-        ajax.get( url ).then( response => {
-            deregisterStoredLinks();
-            var newDOM;
+        console.log( 'ignored:', window.spaify.ignore );
 
-            try {
-                newDOM = domParser.parseFromString( response.data, 'text/html' );
-            } catch ( error ) {
-                newDOM = domParser.parseFromString('<!DOCTYPE html><body>' + response.data + '</body>');
+        ajax.get( url ).then( function ( response ) {
+            diffAndSet( response.data )
+        } ).then( update )
+        .then( setState( url, replace ) );
+    }
+
+    function setState( url, replace ) {
+        if ( ! replace && parseURI( url ).pathname !== parseURI( location.href ).pathname )
+            history.pushState( null, url, url );
+
+        else
+            history.replaceState( null, url, url );
+    }
+
+    function diffAndSet( content ) {
+
+        deregisterStoredLinks();
+        var newDOM;
+
+        try {
+            newDOM = domParser.parseFromString( content, 'text/html' );
+        } catch ( error ) {
+            newDOM = domParser.parseFromString('<!DOCTYPE html><body>' + content + '</body>');
+        }
+
+        var diffs = differ.diff( document, newDOM );
+
+        diffs = diffs.filter( function ( diff ) {
+            if (diff.action === 'removeElement' && diff.element && diff.element.attributes && diff.element.attributes['spa-persist'] !== undefined) {
+                return false;
             }
 
-            var diffs = differ.diff( document, newDOM );
-
-            diffs = diffs.filter( diff => {
-                if (diff.action === 'removeElement' && diff.element && diff.element.attributes && diff.element.attributes['spa-persist'] !== undefined) {
-                    return false;
-                }
-
-                return true;
-            } );
-            var successful = differ.apply( document, diffs );
-
-            [].forEach.call( document.querySelectorAll( '[spa-reload]' ), element => {
-                if ( element.getAttribute( 'spa-persist' ) === null ) {
-
-                    console.log( 'replacing', element );
-                    var parent = element.parentNode;
-                    var clone = Node.cloneNode( element );
-
-                    parent.removeChild( element );
-                    parent.appendChild( clone );
-                }
-            } );
-
-            update();
-
-            if ( ! replace )
-                history.pushState( null, url, url );
-            else
-                history.replaceState( null, url, url );
+            return true;
         } );
+        var successful = differ.apply( document, diffs );
+
+        [].forEach.call( document.querySelectorAll( '[spa-reload]' ), function ( element ) {
+            if ( element.getAttribute( 'spa-persist' ) === null ) {
+
+                console.log( 'replacing', element );
+                var parent = element.parentNode;
+                var clone = Node.cloneNode( element );
+
+                parent.removeChild( element );
+                parent.appendChild( clone );
+            }
+        } );
+
     }
 
     function listen( link ) {
@@ -126,11 +151,18 @@
     function parseURI( url ) {
         var parser = document.createElement('a');
         parser.href = url;
-        return parser;
+        return {
+            protocol: parser.protocol,
+            hostname: parser.hostname,
+            port: parser.port,
+            pathname: parser.pathname,
+            search: parser.search,
+            hash: parser.hash,
+            host: parser.host
+        };
     }
 
     function isExternal( url ) {
         return parseURI( url ).hostname !== parseURI( '' ).hostname;
     }
-
-} )();
+}
