@@ -1,7 +1,7 @@
 window.spaify = function ( options ) {
     'use strict';
 
-    if ( options.ignore && typeof options.ignore === 'string' )
+    if ( options && options.ignore && typeof options.ignore === 'string' )
         options.ignore = [ options.ignore ];
 
     start();
