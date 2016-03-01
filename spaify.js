@@ -54,7 +54,7 @@ window.spaify = function ( options ) {
         if ( isIgnored( url ) )
             return;
 
-        if ( url === '#' )
+        if ( url.charAt( '#' ) )
             return;
 
         if ( isExternal( url ) && event.target.getAttribute( 'spa-external' ) === null )

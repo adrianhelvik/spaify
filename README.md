@@ -29,9 +29,10 @@ Simply add the following to the bottom of your pages:
 </script>
 ```
 
-.. and all `<a>` tags will trigger a get request that only
-replaces the changed parts of the DOM instead of applying
-a full page reload.
+.. and all `<a>` tags with an href-attribute not starting
+with `#` will trigger a get request that only replaces the
+changed parts of the DOM instead of applying a full page
+reload.
 
 ### the spa-persist attribute
 
