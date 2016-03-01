@@ -1,6 +1,23 @@
 Spaify
 ======
 
+The motivation
+--------------
+
+There are thousands of spa-frameworks out there. They are
+definitely good for a lot of purposes, but with frameworks
+such as Laravel and Ruby On Rails, a good old `<a href>`-powered
+website is just faster to produce.
+
+As this script only reloads the changed parts of the page
+you will probably discover that your scripts require a tiny
+bit of tweaking(see my example). But on the other hand,
+as long as the pages contain the same script tags, you will
+achieve a stateful site.
+
+The how
+-------
+
 Simply add the following to the bottom of your pages:
 
 ```html
