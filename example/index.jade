@@ -1,0 +1,16 @@
+doctype html
+head
+    include _head.jade
+body
+    include _header.jade
+
+    .container
+        h2 The index page
+        p Enter your name:
+        input( v-model="name" )
+
+    .container
+        p Your name is {{ name }}
+        a( href="contact.jade" v-show="name" ) After you have typed your name, go to the contact page.
+
+    include _scripts.jade

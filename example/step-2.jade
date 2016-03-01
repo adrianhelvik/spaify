@@ -1,0 +1,14 @@
+doctype html
+head
+    include _head.jade
+body
+    include _header.jade
+    .container
+        div( v-if="name" )
+            h2 Hello {{ name }}! How do you do?
+            h3 As you see data is persistent across pages.
+            p Now try refreshing the page. This page uses Vue JS for data binding. And its data is stored in local storage when the page is closed.
+        div( v-if="! name" )
+            h2 Hello there!
+            h3 You should head back to #[a( href="index.jade" ) the home page] to enter your name.
+    include _scripts.jade

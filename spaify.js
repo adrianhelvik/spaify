@@ -1,14 +1,16 @@
 window.spaify = function ( options ) {
     'use strict';
 
-    console.log( 'spaify ran' );
-
-    window.onload = start;
+    start();
 
     var differ;
     var domParser;
     var storedLinks;
     var persistentElements;
+    var mutationTimeout;
+    var observer;
+    var events = {};
+    var currentUrl;
 
     function start() {
 
@@ -17,8 +19,10 @@ window.spaify = function ( options ) {
             return;
         }
 
-        if ( ! DOMParser )
-            throw new Error( 'DOMParser not supported in your browser.' );
+        if ( ! DOMParser ) {
+            console.warn( 'Your browser does not support DOMParser, which is required for spaify to work. Falling back to normal hrefs.' );
+            return;
+        }
 
         if ( ! diffDOM )
             throw new Error( 'diffDOM is required to run spaify. Download it from github: fiduswriter/diffDOM' );
@@ -27,49 +31,27 @@ window.spaify = function ( options ) {
         domParser = new DOMParser();
         storedLinks = [];
         persistentElements = [];
+        currentUrl = document.location.pathname;
 
-        update();
-    }
+        window.addEventListener( 'beforeunload', function () {
+            console.log( 'beforeunload' );
+        } );
 
-    function update() {
+        window.addEventListener( 'popstate', function () {
+            console.log( 'popstate' );
+            if ( parseURI( document.location.pathname ).pathname !== parseURI( currentUrl ).pathname )
+                goTo( document.location.pathname, true );
+        } );
 
-        deregisterStoredLinks();
-
-        var links = document.querySelectorAll( 'a' );
-        persistentElements = findPersistentElements();
-
-        for ( var i = 0; i < links.length; i++ ) {
-
-            if ( links[i].getAttribute( 'spa-persist' ) !== null )
-                continue;
-
-            ajaxify( links[i] );
-        }
-
-        window.onpopstate = function ( event ) {
-            console.log( parseURI( location.href ).pathname );
-            setTimeout( function () {
-                if ( parseURI( document.location.pathname ).pathname !== parseURI( location.href ).pathname )
-                    goTo( document.location.pathname, true );
-            }, 500 );
-        };
-    }
-
-    function findPersistentElements() {
-        return document.querySelectorAll('[spa-persist]');
-    }
-
-    function ajaxify( link ) {
-        storedLinks.push( link );
-        listen( link );
-    }
-
-    function deregisterStoredLinks() {
-        storedLinks.forEach( unlisten );
+        document.addEventListener( 'click', clickHandler );
     }
 
     function clickHandler( event ) {
-        var url = this.getAttribute( 'href' );
+        if ( event.target.tagName !== 'A' ) {
+            return;
+        }
+
+        var url = event.target.getAttribute( 'href' );
 
         if ( isIgnored( url ) )
             return;
@@ -77,12 +59,13 @@ window.spaify = function ( options ) {
         if ( url === '#' )
             return;
 
-        if ( isExternal( url ) && this.getAttribute( 'spa-external' ) === null )
+        if ( isExternal( url ) && event.target.getAttribute( 'spa-external' ) === null )
             return;
 
-        event.preventDefault();
+        var success = goTo( url );
 
-        goTo( url );
+        if ( success )
+            event.preventDefault();
     }
 
     function isIgnored( url ) {
@@ -99,13 +82,39 @@ window.spaify = function ( options ) {
     }
 
     function goTo( url, replace ) {
+        var success = true;
 
-        console.log( 'ignored:', window.spaify.ignore );
+        ajax.get( url )
+        .then( diffAndSet, function ( error ) { success = false; } )
+        .then( function() { setState( url, replace ) } )
+        .then( emitLoad )
+        .then( emitReady )
+        .catch( function() {
+            location.href = url;
+            console.log( 'err!' );
+            success = false;
+        } );
 
-        ajax.get( url ).then( function ( response ) {
-            diffAndSet( response.data )
-        } ).then( update )
-        .then( setState( url, replace ) );
+        if ( ! success ) {
+            return false;
+        }
+
+        currentUrl = url;
+        return true;
+    }
+
+    function emitLoad() {
+        var evt = document.createEvent('Event');
+        evt.initEvent('load', false, false);
+        window.dispatchEvent( evt );
+        document.dispatchEvent( evt );
+    }
+
+    function emitReady() {
+        var evt = document.createEvent('Event');
+        evt.initEvent('load', false, false);
+        window.dispatchEvent( evt );
+        document.dispatchEvent( evt );
     }
 
     function setState( url, replace ) {
@@ -116,9 +125,14 @@ window.spaify = function ( options ) {
             history.replaceState( null, url, url );
     }
 
-    function diffAndSet( content ) {
+    function diffAndSet( response ) {
 
-        deregisterStoredLinks();
+        if ( response.status.toString().charAt( 0 ) !== '2' ) {
+            throw new Error( 'Not found.' );
+        }
+
+        var content = response.data;
+
         var newDOM;
 
         try {
@@ -130,26 +144,20 @@ window.spaify = function ( options ) {
         var diffs = differ.diff( document, newDOM );
 
         diffs = diffs.filter( function ( diff ) {
+
             if (diff.action === 'removeElement' && diff.element && diff.element.attributes && diff.element.attributes['spa-persist'] !== undefined) {
                 return false;
             }
 
             return true;
-        } );
-        var successful = differ.apply( document, diffs );
 
-        [].forEach.call( document.querySelectorAll( '[spa-reload]' ), function ( element ) {
-            if ( element.getAttribute( 'spa-persist' ) === null ) {
-
-                console.log( 'replacing', element );
-                var parent = element.parentNode;
-                var clone = Node.cloneNode( element );
-
-                parent.removeChild( element );
-                parent.appendChild( clone );
-            }
         } );
 
+        try {
+            differ.apply( document, diffs );
+        } catch ( error ) {
+            console.log( error );
+        }
     }
 
     function listen( link ) {
