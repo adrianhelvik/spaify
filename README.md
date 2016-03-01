@@ -33,6 +33,16 @@ spaify( { ignore: '/some-page' } );
 spaify( { ignore: [ '/some-page', '/some-other-page' ] } );
 ```
 
+How to run the example
+======================
+
+* clone the repo
+* download npm and
+* run `npm install --global serve`
+* cd into the root of the project (not the example directory)
+* run the command `serve`
+* open example, then open index.jade
+
 Licence
 =======
 
