@@ -36,12 +36,7 @@ window.spaify = function ( options ) {
         persistentElements = [];
         currentUrl = document.location.pathname;
 
-        window.addEventListener( 'beforeunload', function () {
-            console.log( 'beforeunload' );
-        } );
-
         window.addEventListener( 'popstate', function () {
-            console.log( 'popstate' );
             if ( parseURI( document.location.pathname ).pathname !== parseURI( currentUrl ).pathname )
                 goTo( document.location.pathname, true );
         } );
@@ -94,7 +89,6 @@ window.spaify = function ( options ) {
         .then( emitReady )
         .catch( function() {
             location.href = url;
-            console.log( 'err!' );
             success = false;
         } );
 
@@ -156,11 +150,7 @@ window.spaify = function ( options ) {
 
         } );
 
-        try {
-            differ.apply( document, diffs );
-        } catch ( error ) {
-            console.log( error );
-        }
+        differ.apply( document, diffs );
     }
 
     function listen( link ) {
