@@ -41,7 +41,7 @@ How to run the example
 * run `npm install --global serve`
 * cd into the root of the project (not the example directory)
 * run the command `serve`
-* open example, then open index.jade
+* Open localhost:3000 in your browser and click on example and then index.jade
 
 Licence
 =======
